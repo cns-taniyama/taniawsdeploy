@@ -1,0 +1,15 @@
+aws_region         = "ap-northeast-1"
+github_owner       = "cns-taniyama"
+github_repository  = "taniawsdeploy"
+github_branch      = "main"
+iam_role_name      = "gha-taniawsdeploy-deploy"
+
+# If your AWS account already has this provider, set create=false and specify ARN.
+create_github_oidc_provider      = true
+existing_github_oidc_provider_arn = null
+
+# Full access. Set false to avoid AdministratorAccess.
+attach_administrator_access = true
+
+# Example: add extra policies if needed.
+additional_policy_arns = []
