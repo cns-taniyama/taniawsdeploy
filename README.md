@@ -1,6 +1,6 @@
 # taniawsdeploy
 
-GitHub Actions -> AWS deploy setup by Terraform.
+Terraform builds AWS infra (OIDC, EC2, S3), and GitHub Actions deploys app files to EC2 via SSM.
 
 ## 1. Build AWS side with Terraform
 
@@ -16,7 +16,12 @@ terraform init
 terraform apply
 ```
 
-After apply, copy output `github_actions_role_arn`.
+After apply, copy these outputs:
+
+- `github_actions_role_arn`
+- `deploy_artifact_bucket`
+- `ec2_instance_id`
+- `ec2_public_ip`
 
 ## 2. Set GitHub repository variables
 
@@ -24,6 +29,8 @@ Repository Settings -> Secrets and variables -> Actions -> Variables:
 
 - `AWS_ROLE_ARN`: output `github_actions_role_arn`
 - `AWS_REGION`: deployment region (example: `ap-northeast-1`)
+- `DEPLOY_BUCKET`: output `deploy_artifact_bucket`
+- `EC2_INSTANCE_ID`: output `ec2_instance_id`
 
 ## 3. Run GitHub Actions
 
@@ -32,7 +39,13 @@ Workflow file: `.github/workflows/deploy.yml`
 - `push` to `main`, or
 - run manually with `workflow_dispatch`
 
-Current deploy step is placeholder. Replace `Deploy` step with your actual command.
+Workflow behavior:
+
+- package current repository files (except `.git`, `.github`, `infra`, `build`)
+- upload artifact zip to `DEPLOY_BUCKET`
+- run SSM command on `EC2_INSTANCE_ID`
+- deploy files into `/var/www/html`
+- restart Apache
 
 ## Notes
 
@@ -41,3 +54,5 @@ Current deploy step is placeholder. Replace `Deploy` step with your actual comma
 - If your account already has the GitHub OIDC provider, set:
   - `create_github_oidc_provider = false`
   - `existing_github_oidc_provider_arn = "arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com"`
+- Default AMI is Amazon Linux 2023. `user_data` installs `httpd`, `php`, `unzip`.
+- Site URL after apply: `http://<ec2_public_ip>/`
