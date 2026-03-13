@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+# 全体共通
+# -----------------------------------------------------------------------------
+# 入力変数の設計方針:
+# - 初回セットアップで動く既定値を用意する
+# - 環境差分として必要な値だけを外出しする
+# - セキュリティ関連の既定値は本番前に見直す
 variable "aws_region" {
   description = "AWS region for provider and deployment."
   type        = string
@@ -22,6 +29,11 @@ variable "github_branch" {
   default     = "main"
 }
 
+# -----------------------------------------------------------------------------
+# GitHub OIDC / Actions ロール制御
+# -----------------------------------------------------------------------------
+# OIDC で「どの GitHub 実行元がロールを引き受けられるか」を制御します。
+# 既定では 1 つのリポジトリの main ブランチのみ許可します。
 variable "github_subject_claims" {
   description = "Override GitHub OIDC sub claims. Empty list uses main branch default."
   type        = list(string)
@@ -45,6 +57,10 @@ variable "attach_administrator_access" {
   type        = bool
   default     = true
 }
+# セキュリティ注意:
+# - true: 初期構築は簡単だが権限が広い
+# - false: 本番推奨。additional_policy_arns や main.tf のカスタムポリシーで
+#   最小権限を付与する
 
 variable "additional_policy_arns" {
   description = "Additional IAM policy ARNs to attach."
@@ -57,6 +73,10 @@ variable "create_github_oidc_provider" {
   type        = bool
   default     = true
 }
+# 既に同一アカウントに OIDC Provider がある場合:
+# - create_github_oidc_provider = false
+# - existing_github_oidc_provider_arn に既存 ARN を設定
+# これで apply 時の EntityAlreadyExists を回避できます。
 
 variable "existing_github_oidc_provider_arn" {
   description = "Existing GitHub OIDC provider ARN (required when create_github_oidc_provider=false)."
@@ -69,6 +89,10 @@ variable "existing_github_oidc_provider_arn" {
   }
 }
 
+# -----------------------------------------------------------------------------
+# EC2 アプリケーションホスト
+# -----------------------------------------------------------------------------
+# この EC2 は GitHub Actions（SSM 経由）のデプロイ先です。
 variable "ec2_instance_type" {
   description = "EC2 instance type for the web server."
   type        = string
@@ -86,13 +110,20 @@ variable "ec2_key_name" {
   type        = string
   default     = null
 }
+# null は「SSH キーペア未設定」を意味します。
+# 本構成では運用アクセスを AWS Systems Manager 前提としています。
 
 variable "http_ingress_cidrs" {
   description = "CIDRs allowed to access HTTP(80) on EC2."
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+# 現在は ALB 側の公開 CIDR 制御にも使われます。
+# 公開範囲を制限したい場合はこのリストを絞ってください。
 
+# -----------------------------------------------------------------------------
+# CI/CD 配布物アップロード用バケット
+# -----------------------------------------------------------------------------
 variable "artifact_bucket_name" {
   description = "Optional pre-defined bucket name for deployment artifacts."
   type        = string
@@ -104,7 +135,12 @@ variable "artifact_bucket_force_destroy" {
   type        = bool
   default     = false
 }
+# 明示的に削除したい場合を除き false 推奨です。
+# true は検証環境の後片付けには便利ですが、保管データ消失リスクがあります。
 
+# -----------------------------------------------------------------------------
+# ALB
+# -----------------------------------------------------------------------------
 variable "alb_name" {
   description = "ALB name for web traffic."
   type        = string
@@ -117,6 +153,11 @@ variable "alb_health_check_path" {
   default     = "/phpinfo.php"
 }
 
+# -----------------------------------------------------------------------------
+# RDS MySQL
+# -----------------------------------------------------------------------------
+# ここで定義するのは初期 DB 特性です。
+# アプリのスキーマ変更やデータ移行は Terraform の対象外です。
 variable "db_name" {
   description = "Initial MySQL database name."
   type        = string
@@ -152,9 +193,11 @@ variable "db_skip_final_snapshot" {
   type        = bool
   default     = true
 }
+# 本番推奨: false（削除時に最終スナップショットを残す）
 
 variable "db_deletion_protection" {
   description = "Enable deletion protection for RDS."
   type        = bool
   default     = false
 }
+# 本番推奨: true（誤削除防止）

@@ -1,3 +1,11 @@
+# -----------------------------------------------------------------------------
+# GitHub Actions 連携用の出力値
+# -----------------------------------------------------------------------------
+# terraform apply 後に GitHub の Variables へ設定する値です。
+# 対応例:
+# - github_actions_role_arn -> AWS_ROLE_ARN
+# - deploy_artifact_bucket  -> DEPLOY_BUCKET
+# - ec2_instance_id         -> EC2_INSTANCE_ID
 output "github_actions_role_arn" {
   description = "IAM role ARN to set in GitHub Actions variable AWS_ROLE_ARN."
   value       = aws_iam_role.github_actions_deploy.arn
@@ -8,6 +16,10 @@ output "github_oidc_provider_arn" {
   value       = local.github_oidc_provider_arn
 }
 
+# -----------------------------------------------------------------------------
+# 稼働基盤の出力値
+# -----------------------------------------------------------------------------
+# デプロイ後の手動確認や障害調査で使う値です。
 output "ec2_instance_id" {
   description = "EC2 instance ID used by GitHub Actions deployment."
   value       = aws_instance.web.id
@@ -23,6 +35,10 @@ output "deploy_artifact_bucket" {
   value       = aws_s3_bucket.artifacts.bucket
 }
 
+# -----------------------------------------------------------------------------
+# 公開エンドポイント / DB接続情報の出力値
+# -----------------------------------------------------------------------------
+# この構成では ALB DNS が主な公開入口になります。
 output "alb_dns_name" {
   description = "Public ALB DNS name for application access."
   value       = aws_lb.web.dns_name
@@ -48,3 +64,6 @@ output "rds_master_password" {
   value       = random_password.db_master.result
   sensitive   = true
 }
+# 重要:
+# - sensitive = true で通常出力では隠せますが、値自体は state に残ります。
+#   state へのアクセス権は厳格に管理してください。

@@ -1,11 +1,14 @@
 name: Deploy
 
 on:
+  # Manual trigger from Actions tab.
   workflow_dispatch:
+  # Auto deploy when main is updated.
   push:
     branches:
       - main
 
+# Required for OIDC based AssumeRole.
 permissions:
   id-token: write
   contents: read
@@ -14,6 +17,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
+      # GitHub repository Variables (Settings -> Secrets and variables -> Actions)
       AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-1' }}
       DEPLOY_BUCKET: ${{ vars.DEPLOY_BUCKET }}
       EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
@@ -36,6 +40,7 @@ jobs:
           test -n "${DEPLOY_BUCKET}" || (echo "Missing repository variable DEPLOY_BUCKET" && exit 1)
           test -n "${EC2_INSTANCE_ID}" || (echo "Missing repository variable EC2_INSTANCE_ID" && exit 1)
 
+      # Build a zip artifact from repository files.
       - name: Package app artifact
         run: |
           mkdir -p build
@@ -45,12 +50,14 @@ jobs:
                "infra/*" \
                "build/*"
 
+      # Upload artifact to S3 so EC2 can pull it via IAM role.
       - name: Upload artifact to S3
         run: |
           ARTIFACT_KEY="releases/${GITHUB_SHA}.zip"
           aws s3 cp build/app.zip "s3://${DEPLOY_BUCKET}/${ARTIFACT_KEY}"
           echo "ARTIFACT_KEY=${ARTIFACT_KEY}" >> "${GITHUB_ENV}"
 
+      # Execute deployment commands remotely through AWS Systems Manager.
       - name: Deploy to EC2 via SSM
         shell: bash
         run: |

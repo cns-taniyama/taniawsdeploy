@@ -1,20 +1,42 @@
+# -----------------------------------------------------------------------------
+# リポジトリとリージョン
+# -----------------------------------------------------------------------------
+# aws_region:
+#   このスタックで作成する AWS リソースの配置リージョン
+# github_owner / github_repository / github_branch:
+#   GitHub OIDC 信頼条件（sub claim）を組み立てるための値
+# iam_role_name:
+#   GitHub Actions から引き受ける IAM ロール名（AWS コンソールやログで表示）
 aws_region         = "ap-northeast-1"
 github_owner       = "cns-taniyama"
 github_repository  = "taniawsdeploy"
 github_branch      = "main"
 iam_role_name      = "gha-taniawsdeploy-deploy"
 
-# If your AWS account already has this provider, set create=false and specify ARN.
+# 既に同じ AWS アカウントに Provider がある場合は create=false にして ARN を指定。
 create_github_oidc_provider      = true
 existing_github_oidc_provider_arn = null
+# 既存 Provider ARN の形式例:
+# arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com
 
-# Full access. Set false to avoid AdministratorAccess.
+# 全権限付与。最小権限化する場合は false にする。
 attach_administrator_access = true
+# 本番推奨: false にして最小権限ポリシーを付与する。
 
-# Example: add extra policies if needed.
+# 必要に応じて追加ポリシーを指定する。
 additional_policy_arns = []
+# 設定例:
+# additional_policy_arns = [
+#   "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+# ]
 
-# EC2 web server settings
+# -----------------------------------------------------------------------------
+# EC2 ウェブサーバ設定
+# -----------------------------------------------------------------------------
+# ec2_key_name:
+#   null は SSH キーペア未設定（SSM アクセス前提）
+# http_ingress_cidrs:
+#   ALB の公開 HTTP 許可範囲を制御
 ec2_instance_type = "t3.micro"
 ec2_name          = "taniawsdeploy-web"
 ec2_key_name      = null
@@ -22,15 +44,26 @@ http_ingress_cidrs = [
   "0.0.0.0/0"
 ]
 
-# Optional. null means Terraform auto-generates a unique bucket name.
+# 任意。null の場合は Terraform が一意なバケット名を自動生成。
 artifact_bucket_name         = null
 artifact_bucket_force_destroy = false
+# force_destroy=true にすると terraform destroy 時に中身入りバケットも削除可能。
+# 安全運用では false 推奨。
 
-# ALB settings
+# -----------------------------------------------------------------------------
+# ALB 設定
+# -----------------------------------------------------------------------------
+# alb_health_check_path はターゲットから HTTP 200-399 が返る軽量 URL を指定。
 alb_name              = "taniawsdeploy-alb"
 alb_health_check_path = "/phpinfo.php"
 
-# RDS MySQL settings
+# -----------------------------------------------------------------------------
+# RDS MySQL 設定
+# -----------------------------------------------------------------------------
+# db_skip_final_snapshot / db_deletion_protection は検証環境向けの既定値です。
+# 本番では通常次の設定を推奨:
+# - db_skip_final_snapshot = false
+# - db_deletion_protection = true
 db_name                    = "appdb"
 db_username                = "admin"
 db_instance_class          = "db.t4g.micro"
