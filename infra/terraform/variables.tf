@@ -104,3 +104,57 @@ variable "artifact_bucket_force_destroy" {
   type        = bool
   default     = false
 }
+
+variable "alb_name" {
+  description = "ALB name for web traffic."
+  type        = string
+  default     = "taniawsdeploy-alb"
+}
+
+variable "alb_health_check_path" {
+  description = "Health check path for ALB target group."
+  type        = string
+  default     = "/phpinfo.php"
+}
+
+variable "db_name" {
+  description = "Initial MySQL database name."
+  type        = string
+  default     = "appdb"
+}
+
+variable "db_username" {
+  description = "Master username for MySQL RDS."
+  type        = string
+  default     = "admin"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class."
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "RDS allocated storage (GB)."
+  type        = number
+  default     = 20
+}
+
+variable "db_backup_retention_period" {
+  description = "RDS backup retention in days."
+  type        = number
+  default     = 7
+}
+
+variable "db_skip_final_snapshot" {
+  description = "Skip final snapshot when destroying RDS."
+  type        = bool
+  default     = true
+}
+
+variable "db_deletion_protection" {
+  description = "Enable deletion protection for RDS."
+  type        = bool
+  default     = false
+}
